@@ -1,7 +1,6 @@
 const { Server } = require("socket.io");
 var cors = require('cors');
 var SocketController = require('./controller/socket-controller');
-let socketController = null;
 module.exports = async (server) => {
   const whitelist = ['http://localhost:3000', 'http://129.168.0.105:3000'];
   var corsOptions = {
@@ -17,8 +16,7 @@ module.exports = async (server) => {
   });
   io.on("connection", socket => {
     console.log('socket connected ...');
-    if (!socketController) socketController = new SocketController();
-    socketController.configureSocket(socket);
+    new SocketController(socket);
   });
   io.on("close", data => {
     console.log(data);

@@ -345,7 +345,7 @@ module.exports = class LudoGame {
     }
 
     reset = async () => {
-        console.log('resetting a ludo game...');
+        console.log('reset a ludo game...');
         this.initialState();
     }
 }  

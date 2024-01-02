@@ -17,8 +17,9 @@ module.exports = async (server) => {
   });
   io.on("connection", socket => {
     console.log('socket connected ...');
-    if (!socketController) socketController = new SocketController();
-    socketController.configureSocket(socket);
+    if (SocketController) {
+      SocketController = new SocketController(socket);
+    }
   });
   io.on("close", data => {
     console.log(data);

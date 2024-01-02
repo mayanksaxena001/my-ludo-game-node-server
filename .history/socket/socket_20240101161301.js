@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 var cors = require('cors');
 var SocketController = require('./controller/socket-controller');
-let socketController = null;
+const socketControllers = new Map();
 module.exports = async (server) => {
   const whitelist = ['http://localhost:3000', 'http://129.168.0.105:3000'];
   var corsOptions = {
@@ -17,13 +17,19 @@ module.exports = async (server) => {
   });
   io.on("connection", socket => {
     console.log('socket connected ...');
-    if (!socketController) socketController = new SocketController();
-    socketController.configureSocket(socket);
+    let socketController = null;
+    socketController = socketControllers.get(socket.id);
+    if (!socketController) {
+      socketController = new SocketController(socket);
+      socketControllers.set({ id: socket.id, socketController });
+    }
   });
   io.on("close", data => {
     console.log(data);
+    socketController = null;
   });
   io.on('error', (err) => {
+    console.log(err);
     // socketController = null;
     console.error(err)
   });

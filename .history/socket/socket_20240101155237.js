@@ -17,11 +17,11 @@ module.exports = async (server) => {
   });
   io.on("connection", socket => {
     console.log('socket connected ...');
-    if (!socketController) socketController = new SocketController();
-    socketController.configureSocket(socket);
+    if (!socketController) socketController = new SocketController(socket);
   });
   io.on("close", data => {
     console.log(data);
+    socketController = null;
   });
   io.on('error', (err) => {
     // socketController = null;

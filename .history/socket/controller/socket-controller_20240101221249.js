@@ -48,8 +48,7 @@ module.exports = class SocketController {
     sendChatMessage = async (data) => {
         console.log('sending message...', data);
         if (data) {
-            if (this.socket) this.socket.to(data.room).emit("chat_message_recieved", data.message);
-            // this.socket.emit("chat_message_recieved", data.message);
+            this.socket.to(data.room).emit("chat_message_recieved", data.message);
         }
     };
 

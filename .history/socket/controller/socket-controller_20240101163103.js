@@ -1,13 +1,16 @@
 'use strict';
 var LudoGame = require('./ludo.game');
 module.exports = class SocketController {
-    constructor() {
-        console.log('constructing socket controller...');
-        this.ludoGame = null; this.socket = null;
-    }
-    configureSocket = async (socket) => {
+    constructor(socket) {
         if (socket) {
-            this.socket = socket;
+            console.log('constructing socket controller... for : ', socket.id);
+            this.ludoGame = null; this.socket = socket;
+            this.configureSocket();
+            this.ludoGame = new LudoGame();
+        }
+    }
+    configureSocket = async () => {
+        if (this.socket) {
             await this.onConnection();
 
             this.socket.on("send_message", async (data) => {
@@ -37,19 +40,6 @@ module.exports = class SocketController {
             this.socket.on('selected_token', async (data) => {
                 await this.selectedToken(data);
             });
-
-            this.socket.on('send_chat_message', async (data) => {
-                await this.sendChatMessage(data);
-            });
-
-        }
-    };
-
-    sendChatMessage = async (data) => {
-        console.log('sending message...', data);
-        if (data) {
-            if (this.socket) this.socket.to(data.room).emit("chat_message_recieved", data.message);
-            // this.socket.emit("chat_message_recieved", data.message);
         }
     };
 
@@ -81,14 +71,13 @@ module.exports = class SocketController {
     };
 
     startGame = async (data) => {
+        console.log('starting game..', data);
         const hasStarted = await this.ludoGame.startGame();
         const playerTurn = await this.ludoGame.getPlayerTurn();
-        if (hasStarted) {
-            console.log('starting game..', data);
+        if (hasStarted && this.socket) {
             let started = { has_started: hasStarted, player_turn: playerTurn };
             this.socket.to(data.room).emit("received_message", started);
             this.socket.emit("received_message", started);
-            // await this.sendUpdatedData(data);
         }
     };
 
@@ -103,8 +92,7 @@ module.exports = class SocketController {
 
     onConnection = async () => {
         //initialise state
-        console.log('Socket connected..');
-        if (!this.ludoGame) this.ludoGame = new LudoGame();
+        // if (!this.ludoGame) this.ludoGame = new LudoGame();
         if (this.socket) {
             console.log("User connected with  %s...Socket Id: %s", this.socket.client.conn.remoteAddress, this.socket.id);
             this.socket.emit("received_message", { "connected": true });
@@ -114,8 +102,7 @@ module.exports = class SocketController {
     onDisconnection = async (data) => {
         console.log('Socket disconnected..', data);
         this.socket = null;
-        // if (this.ludoGame) this.ludoGame.reset();
-        this.ludoGame = null;
+        this.ludoGame.reset();
         //set inactive 
         // this.ludoGame.setActive(data,false);
     };
@@ -129,6 +116,7 @@ module.exports = class SocketController {
         console.log("Joining room request ..", data);
         if (data.room) {
             try {
+                console.log('fetching game data...');
                 await this.ludoGame.initialize(data);
                 let gameData = await this.ludoGame.getGameData();
                 //set active 
