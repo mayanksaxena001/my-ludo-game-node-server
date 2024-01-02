@@ -48,8 +48,7 @@ module.exports = class SocketController {
     sendChatMessage = async (data) => {
         console.log('sending message...', data);
         if (data) {
-            if (this.socket) this.socket.to(data.room).emit("chat_message_recieved", data.message);
-            // this.socket.emit("chat_message_recieved", data.message);
+            this.socket.to(data.room).emit("chat_message_recieved", data.messages);
         }
     };
 
@@ -114,8 +113,7 @@ module.exports = class SocketController {
     onDisconnection = async (data) => {
         console.log('Socket disconnected..', data);
         this.socket = null;
-        // if (this.ludoGame) this.ludoGame.reset();
-        this.ludoGame = null;
+        if (this.ludoGame) this.ludoGame.reset();
         //set inactive 
         // this.ludoGame.setActive(data,false);
     };
@@ -133,6 +131,7 @@ module.exports = class SocketController {
                 let gameData = await this.ludoGame.getGameData();
                 //set active 
                 //join the socket
+                console.log("Game Data : ", gameData);
                 if (this.socket) {
                     this.socket.join(data.room);
                     this.socket.to(data.room).emit("player_joined", data.userId);
@@ -146,6 +145,7 @@ module.exports = class SocketController {
 
     sendUpdatedData = async (data) => {
         let gameData = await this.ludoGame.getGameData();
+        console.log("Game Data : ", gameData);
         if (this.socket) {
             this.socket.to(data.room).emit("received_message", gameData);
             this.socket.emit("received_message", gameData);
