@@ -3,7 +3,6 @@ var GameRepository = require('../../mysql/db/game.repository');
 var GameInfoRepository = require('../../mysql/db/gameinfo.repository');
 var UserRepository = require('../../mysql/db/user.repository');
 var LudoTokenRepository = require('../../mysql/db/ludotoken.repository');
-const { user } = require("../../mysql/models/models");
 const gameRepository = new GameRepository();
 const gameInfoRepository = new GameInfoRepository();
 const userRepository = new UserRepository();
@@ -22,10 +21,9 @@ module.exports = class LudoGame {
         this.gameData = Object.assign({}, GameData);
     }
 
-    async initialize(data) {
+    async initialize(gameId) {
         console.log('initializing game data...');
         console.log('===============>>>>>>>>>');
-        const gameId = data.gameId;
         const game = await gameRepository.getById(gameId);
         if (!game) return null;
         const gameInfos = await gameInfoRepository.findByGameId(gameId);
@@ -69,6 +67,7 @@ module.exports = class LudoGame {
                             token.disabled = false;
                             token.active = false;
                             token.house_id = userId;
+                            // token.position=index+'-12';
                             house.tokens.push(token);
                         }
                     }
@@ -130,7 +129,7 @@ module.exports = class LudoGame {
         return this.gameData.player_turn;
     }
 
-    startGame =   async () => {
+    startGame = async () => {
         let playerCount = 0;
         for (let key in this.gameData.players) {
             if (this.gameData.players[key]) {
@@ -319,6 +318,7 @@ module.exports = class LudoGame {
 
     finishGame() {
         if (this.gameData.home.length === (this.gameData.player_count - 1)) {
+            console.log("finishing game...");
             this.gameData.has_stopped = true;
             this.gameData.has_started = false;
         }

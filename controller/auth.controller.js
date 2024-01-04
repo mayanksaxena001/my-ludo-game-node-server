@@ -177,6 +177,26 @@ module.exports = {
       // algorithm: "ES256",TODO : use some algo with jwt
       expiresIn: process.env.TOKEN_EXPIRE_TIME // just playing with it ,expires in 24h
     });
+  },
+
+  async checkSocketToken(token, url) {
+    console.log("checking socket token with url ... "+url);
+    if (!token) throw new Error("No token present..");
+    var jwtVerifyAsync = Promise.promisify(jwt.verify, {
+      context: jwt
+    });
+    var decoded = await jwtVerifyAsync(token, process.env.SECRET);
+    var user = await userRepository.getById(decoded.id);
+    if (!user) throw new Error("User is not registered or might not be active");
+
+    await module.exports.saveApiToken(
+      'CHECK_SOCKET_TOKEN',
+      user.id,
+      true,
+      token,
+      url,
+      "socket"
+    );
   }
 
 }

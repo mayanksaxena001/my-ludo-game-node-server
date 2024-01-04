@@ -1,5 +1,6 @@
 const { Server } = require("socket.io");
 var cors = require('cors');
+var auth = require('../controller/auth.controller');
 var SocketController = require('./controller/socket-controller');
 let socketController = null;
 module.exports = async (server) => {
@@ -15,17 +16,32 @@ module.exports = async (server) => {
   const io = new Server(server, {
     cors: corsOptions
   });
+  // .use((socket, next) => {
+  //   let token = socket.handshake.query.token;
+  //   let url = socket.handshake.headers.referer;
+  //   if (socket.handshake.query && token) {
+  //     auth.checkSocketToken(token, url);
+  //     next();
+  //     //
+  //   }
+  //   else {
+  //     next(new Error('Authentication error'));
+  //   }
+  // })
   io.on("connection", socket => {
     console.log('socket connected ...');
+    //TODO socket controller should have unique different objects
     if (!socketController) socketController = new SocketController();
     socketController.configureSocket(socket);
   });
   io.on("close", data => {
-    console.log(data);
+    console.log("closing connection to socket.. ", data);
+    socketController = null;
   });
   io.on('error', (err) => {
-    // socketController = null;
-    console.error(err)
+    console.log("error in connection to socket.. ");
+    socketController = null;
+    console.error(err);
   });
   //   io.listen(port);
   // io.listen(server);

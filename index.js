@@ -6,7 +6,7 @@ dotenv.config();
 var expressConfig = require('./config/express');
 var router = require('./routes/router');
 const http = require('http');
-var SocketServer = require('./socket/socket');
+var SocketServerOrchestrator = require('./socket/socket');
 
 class LudoServer {
     constructor() {
@@ -31,7 +31,7 @@ class LudoServer {
         });
         //start http server
         this.server.listen(this.env.SERVER_PORT, this.env.SERVER_HOST);
-        SocketServer(this.server);
+        SocketServerOrchestrator(this.server);
         // express settings
         //for now views are integrated in express only
         expressConfig(this.app);
