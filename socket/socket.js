@@ -4,7 +4,7 @@ var auth = require('../controller/auth.controller');
 var SocketController = require('./controller/socket-controller');
 let socketController = null;
 module.exports = async (server) => {
-  const whitelist = ['http://localhost:3000', 'http://129.168.0.105:3000'];
+  const whitelist = ['http://localhost:3000', 'http://129.168.0.105:3000', 'http://172.18.5.3:3000'];
   var corsOptions = {
     origin: whitelist,
     credentials: false,

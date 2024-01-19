@@ -2,7 +2,7 @@ var cors = require('cors');
 var sequelize = require('./database.seq.config');
 module.exports = (app) => {
     console.log('Setting cors options in server');
-    const whitelist = ['http://localhost:3000','http://129.168.0.105:3000'];
+    const whitelist = ['http://localhost:3000','http://129.168.0.105:3000','http://172.18.5.3:3000'];
     const allowedheaders = ["Origin, X-Requested-With", "Content-Type", "Accept", "x-access-token"];
     const exposedheaders = ["x-access-token"];
     const methods = ['POST', 'GET', 'PUT', 'DELETE', 'OPTIONS'];
