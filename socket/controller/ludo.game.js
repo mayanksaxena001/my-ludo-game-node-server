@@ -1,4 +1,4 @@
-const { GameData, House, Player, Token, Colors, Game } = require("./game.data");
+const { GameData, House, Player, Token, Colors, Game, getRoute } = require("./game.data");
 var GameRepository = require('../../mysql/db/game.repository');
 var GameInfoRepository = require('../../mysql/db/gameinfo.repository');
 var UserRepository = require('../../mysql/db/user.repository');
@@ -11,6 +11,10 @@ module.exports = class LudoGame {
     constructor() {
         console.log('constructing a ludo game...');
         this.initialState();
+        // if (!gameData) {
+        //     this.gameData = Object.assign({}, GameData);
+        // } else
+        //     this.gameData = gameData;
     }
 
     initialState() {
@@ -26,23 +30,24 @@ module.exports = class LudoGame {
         console.log('===============>>>>>>>>>');
         const game = await gameRepository.getById(gameId);
         if (!game) return null;
-        const gameInfos = await gameInfoRepository.findByGameId(gameId);
-
+        this.gameData = Object.assign({}, GameData);
         // console.log(gameInfos);
         this.gameData.home = [];
-        this.gameData.game = Object.assign(game, Game);//rTODO :efactor game props
+        let _game = await this.extractGame(game);
+        this.gameData.game = _game;
         this.gameData.player_count = game.player_count;
         this.gameData.token_count = game.token_count;
         this.gameData.player_turn = game.player_turn;
         this.gameData.dice_value = game.dice_value;
         this.gameData.time_out = game.time_out;
 
+        const gameInfos = await gameInfoRepository.findByGameId(gameId);
         let count = 0;
-        for (let key in gameInfos) {
+        console.log(gameInfos.length);
+        for (let key = 0; key < gameInfos.length; key++) {
             const index = count + 1;
             const gameInfo = gameInfos[key];
             if (gameInfo) {
-                const tokens = await ludoTokenRepository.findByHouseId(gameInfo.id);
                 let player = Object.assign({}, Player);
                 const userId = gameInfo.user_id;
                 let user = await userRepository.getById(userId);
@@ -58,9 +63,10 @@ module.exports = class LudoGame {
                 house.disabled = false;
                 house.color = Colors[key];
                 house.tokens = [];
+                const tokens = await ludoTokenRepository.findByHouseId(gameInfo.id);
                 if (tokens && tokens.length > 0) {
                     for (let i = 0; i <= tokens.length; i++) {
-                        if (tokens[i]) {
+                        if (tokens[i] !== undefined) {
                             let token = Object.assign(tokens[i], Token);
                             token.token_id = index + ':' + (i + 1);//TODO
                             token.color = Colors[key];
@@ -75,7 +81,7 @@ module.exports = class LudoGame {
 
                 player.player_turn = index;
                 //TODO ; temp hardcoded,create logic
-                house.route = this.getRoute(index);
+                house.route = getRoute(index);
                 player.house = house;
 
                 this.gameData.players[userId] = player;
@@ -88,37 +94,8 @@ module.exports = class LudoGame {
         // console.log(gameData);
     }
 
-    getRoute = (index) => {
-        let route = [];
-        if (index === 1) {
-            route = ['1-17', '1-16', '1-15', '1-14', '1-13'
-                , '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-18', '2-17', '2-16', '2-15', '2-14', '2-13'
-                , '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-18', '3-17', '3-16', '3-15', '3-14', '3-13'
-                , '4-1', '4-2', '4-3', '4-4', '4-5', '4-6', '4-7', '4-18', '4-17', '4-16', '4-15', '4-14', '4-13'
-                , '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9', '1-10', '1-11', '1-12', 'home'];
-        }
-        else if (index === 2) {
-            route = ['2-17', '2-16', '2-15', '2-14', '2-13'
-                , '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-18', '3-17', '3-16', '3-15', '3-14', '3-13'
-                , '4-1', '4-2', '4-3', '4-4', '4-5', '4-6', '4-7', '4-18', '4-17', '4-16', '4-15', '4-14', '4-13'
-                , '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-18', '1-17', '1-16', '1-15', '1-14', '1-13'
-                , '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-8', '2-9', '2-10', '2-11', '2-12', 'home'];
-        }
-        else if (index === 3) {
-            route = ['3-17', '3-16', '3-15', '3-14', '3-13'
-                , '4-1', '4-2', '4-3', '4-4', '4-5', '4-6', '4-7', '4-18', '4-17', '4-16', '4-15', '4-14', '4-13'
-                , '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-18', '1-17', '1-16', '1-15', '1-14', '1-13'
-                , '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-18', '2-17', '2-16', '2-15', '2-14', '2-13'
-                , '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9', '3-10', '3-11', '3-12', 'home'];
-        }
-        else if (index === 4) {
-            route = ['4-17', '4-16', '4-15', '4-14', '4-13'
-                , '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-18', '1-17', '1-16', '1-15', '1-14', '1-13'
-                , '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-18', '2-17', '2-16', '2-15', '2-14', '2-13'
-                , '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-18', '3-17', '3-16', '3-15', '3-14', '3-13'
-                , '4-1', '4-2', '4-3', '4-4', '4-5', '4-6', '4-7', '4-8', '4-9', '4-10', '4-11', '4-12', 'home'];
-        }
-        return route;
+    setGameData = async (gameData) => {
+        this.gameData = gameData;
     }
 
     getGameData = async () => {
@@ -139,35 +116,43 @@ module.exports = class LudoGame {
         if (this.gameData && !this.gameData.has_started && playerCount === this.gameData.player_count) {
             this.gameData.player_turn = Math.floor(Math.random() * this.gameData.player_count) + 1;
             this.gameData.has_started = true;
+            this.gameData.has_stopped = false;
         }
+        //TODO to be removed
+        this.gameData.player_turn = Math.floor(Math.random() * this.gameData.player_count) + 1;
+        this.gameData.has_started = true;
+        this.gameData.has_stopped = false;
         return this.gameData.has_started;
     }
 
-    async setActive(data, value) {
+    setActive = async (data, value) => {
         const userId = data.userId;
         const gameId = data.gameId;
         if (!value) return;
 
         if (this.gameData && this.gameData.players) {
-            for (let key in this.gameData.players) {
-                let player = this.gameData.players[userId];
-                if (player) {
-                    player.setActive(value);
-                    player.setDisabled(!value);
-                }
+            let player = this.gameData.players[userId];
+            if (player) {
+                player.active = value;
+                player.disabled = !value;
+                this.gameData.players[userId] = player;
             }
         }
         ///set active
     }
 
-    addPlayer(id) {
-        const player = new LudoPlayer(id);
-        this.players[id] = player;
-        return player;
-    }
-
-    removePlayer(player) {
-        delete this.players[player.id];
+    extractGame = async (game) => {
+        if (game) {
+            let _game = Object.assign({}, Game);
+            if (game.id) _game.id = game.id;
+            if (game.room) _game.room = game.room;
+            if (game.created_by) _game.created_by = game.created_by;
+            if (game.active) _game.active = game.active;
+            if (game.createdAt) _game.createdAt = game.createdAt;
+            if (game.updatedAt) _game.updatedAt = game.updatedAt;
+            return _game;
+        }
+        return {};
     }
 
     async setDiceValue(dice_value) {

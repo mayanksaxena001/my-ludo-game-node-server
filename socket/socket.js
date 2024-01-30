@@ -2,7 +2,7 @@ const { Server } = require("socket.io");
 var cors = require('cors');
 var auth = require('../controller/auth.controller');
 var SocketController = require('./controller/socket-controller');
-let socketController = null;
+var socketCache = require('./controller/socket.cache.js');
 module.exports = async (server) => {
   const whitelist = ['http://localhost:3000', 'http://129.168.0.105:3000', 'http://172.18.5.3:3000'];
   var corsOptions = {
@@ -31,16 +31,14 @@ module.exports = async (server) => {
   io.on("connection", socket => {
     console.log('socket connected ...');
     //TODO socket controller should have unique different objects
-    if (!socketController) socketController = new SocketController();
-    socketController.configureSocket(socket);
+     SocketController.initSocket(io,socket,socketCache);
+    // socketController.configureSocket(socket);
   });
   io.on("close", data => {
-    console.log("closing connection to socket.. ", data);
-    socketController = null;
+    console.log("closing connection with socket.. ", data);
   });
   io.on('error', (err) => {
-    console.log("error in connection to socket.. ");
-    socketController = null;
+    console.log("error in connecting socket.. ");
     console.error(err);
   });
   //   io.listen(port);

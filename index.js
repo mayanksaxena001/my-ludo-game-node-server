@@ -31,13 +31,13 @@ class LudoServer {
         });
         //start http server
         this.server.listen(this.env.SERVER_PORT, this.env.SERVER_HOST);
-        SocketServerOrchestrator(this.server);
         // express settings
         //for now views are integrated in express only
         expressConfig(this.app);
         //router settings
         router(this.app);
         // start server
+        SocketServerOrchestrator(this.server);
         // this.app.listen(this.env.SERVER_PORT, this.env.SERVER_HOST, () => {
         //     console.log(`[Server] listening on  ${this.env.SERVER_HOST} : ${this.env.SERVER_PORT}`);
         // });
