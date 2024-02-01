@@ -42,56 +42,9 @@ module.exports = class LudoGame {
         this.gameData.time_out = game.time_out;
 
         const gameInfos = await gameInfoRepository.findByGameId(gameId);
-        let count = 0;
-        console.log(gameInfos.length);
-        for (let key = 0; key < gameInfos.length; key++) {
-            const index = count + 1;
-            const gameInfo = gameInfos[key];
-            if (gameInfo) {
-                let player = Object.assign({}, Player);
-                const userId = gameInfo.user_id;
-                let user = await userRepository.getById(userId);
-                player.id = userId;
-                player.username = user.username;
-                player.color = Colors[key];
-                player.disabled = false;
-                player.active = false;
-                // if (data.userId === userId) player.active = true;
-
-                let house = Object.assign({}, House);
-                house.id = userId;
-                house.disabled = false;
-                house.color = Colors[key];
-                house.tokens = [];
-                const tokens = await ludoTokenRepository.findByHouseId(gameInfo.id);
-                if (tokens && tokens.length > 0) {
-                    for (let i = 0; i <= tokens.length; i++) {
-                        if (tokens[i] !== undefined) {
-                            let token = Object.assign(tokens[i], Token);
-                            token.token_id = index + ':' + (i + 1);//TODO
-                            token.color = Colors[key];
-                            token.disabled = false;
-                            token.active = false;
-                            token.house_id = userId;
-                            // token.position=index+'-12';
-                            house.tokens.push(token);
-                        }
-                    }
-                }
-
-                player.player_turn = index;
-                //TODO ; temp hardcoded,create logic
-                house.route = getRoute(index);
-                player.house = house;
-
-                this.gameData.players[userId] = player;
-                this.gameData.turns[index] = userId;
-                count = count + 1;
-
-            }
-        }
-        // this.gameData.player_count = count;
-        // console.log(gameData);
+        const obj = await this.extractPlayers(gameInfos);
+        if (obj.players) this.gameData.players = obj.players;
+        if (obj.turns) this.gameData.turns = obj.turns;
     }
 
     setGameData = async (gameData) => {
@@ -109,7 +62,8 @@ module.exports = class LudoGame {
     startGame = async () => {
         let playerCount = 0;
         for (let key in this.gameData.players) {
-            if (this.gameData.players[key]) {
+            let player = this.gameData.players[key];
+            if (player) {//only active players
                 playerCount++;
             }
         }
@@ -119,9 +73,9 @@ module.exports = class LudoGame {
             this.gameData.has_stopped = false;
         }
         //TODO to be removed
-        this.gameData.player_turn = Math.floor(Math.random() * this.gameData.player_count) + 1;
-        this.gameData.has_started = true;
-        this.gameData.has_stopped = false;
+        // this.gameData.player_turn = Math.floor(Math.random() * this.gameData.player_count) + 1;
+        // this.gameData.has_started = true;
+        // this.gameData.has_stopped = false;
         return this.gameData.has_started;
     }
 
@@ -139,6 +93,88 @@ module.exports = class LudoGame {
             }
         }
         ///set active
+    }
+
+    async extractPlayers(gameInfos) {
+        let obj = { players: {}, turns: {} };
+        let gameInfosCount = gameInfos.length;
+        console.log(gameInfosCount);
+        for (var key = 0; key < gameInfosCount; key++) {
+            const index = key + 1;
+            const gameInfo = gameInfos[key];
+            const color = Colors[key];
+            if (gameInfo) {
+                let player = Object.assign({}, Player);
+                const userId = gameInfo.user_id;
+                const user = await userRepository.getById(userId);
+                player.id = userId;
+                player.username = user.username;
+                player.color = color;
+                player.disabled = false;
+                player.active = false;
+                // if (data.userId === userId) player.active = true;
+                let house = Object.assign({}, House);
+                house.id = userId;
+                house.disabled = false;
+                house.color = color;
+                house.tokens = [];
+                const tokens = await ludoTokenRepository.findByHouseId(gameInfo.id);
+                if (tokens && tokens.length > 0) {
+                    for (var i = 0; i <= tokens.length; i++) {
+                        if (tokens[i]) {
+                            let token = await this.extractToken(tokens[i]);
+                            token.token_id = index + ':' + (i + 1); //TODO
+                            token.color = color;
+                            token.house_id = userId;
+                            token.disabled = false;
+                            token.active = false;
+                            // token.position=index+'-12';
+                            house.tokens.push(token);
+                        }
+                    }
+                }
+                player.player_turn = index;
+                //TODO ; temp hardcoded,create logic
+                house.route = getRoute(index);
+
+                player.house = house;
+                obj.players[userId] = player;
+                obj.turns[index] = userId;
+
+            }
+        }
+        return obj;
+    }
+
+    extractGame = async (game) => {
+        if (game) {
+            let _game = Object.assign({}, Game);
+            if (game.id) _game.id = game.id;
+            if (game.room) _game.room = game.room;
+            if (game.created_by) _game.created_by = game.created_by;
+            if (game.active) _game.active = game.active;
+            if (game.createdAt) _game.createdAt = game.createdAt;
+            if (game.updatedAt) _game.updatedAt = game.updatedAt;
+            return _game;
+        }
+        return {};
+    }
+
+    extractToken = async (token) => {
+        if (token) {
+            let _token = Object.assign({}, Token);
+            if (token.id) _token.id = token.id;
+            if (token.house_id) _token.house_id = token.house_id;
+            if (token.token_id) _token.token_id = token.token_id;
+            if (token.color) _token.color = token.color;
+            if (token.active) _token.active = token.active;
+            if (token.disabled) _token.disabled = token.disabled;
+            if (token.classname) _token.classname = token.classname;
+            if (token.safe) _token.safe = token.safe;
+            if (token.position) _token.position = token.position;
+            return _token;
+        }
+        return {};
     }
 
     extractGame = async (game) => {
@@ -322,6 +358,13 @@ module.exports = class LudoGame {
         let dice_value = this.gameData.dice_value;
         let player_turn = this.gameData.player_turn;
         if (dice_value !== 6) {
+            player_turn = player_turn + 1;
+            if (player_turn > this.gameData.player_count)
+                player_turn = 1; //rolling turns
+        }
+        let userId = this.gameData.turns[player_turn];
+        let player = this.gameData.players[userId];
+        if(!player.active){
             player_turn = player_turn + 1;
             if (player_turn > this.gameData.player_count)
                 player_turn = 1; //rolling turns

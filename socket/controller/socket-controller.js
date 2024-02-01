@@ -118,7 +118,7 @@ let joinRoom = async (data) => {
             await createLudoGame(data.gameId);
             let gameData = await ludoGame.getGameData();
             //set active 
-            // await ludoGame.setActive(data, true);
+            await ludoGame.setActive(data, true);
 
             gameData = await ludoGame.getGameData();
             sCache.setCache(data.gameId, gameData);

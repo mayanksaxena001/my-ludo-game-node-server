@@ -12,11 +12,12 @@ const ludoTokenRepository = new LudoTokenRepository();
 class SocketCache {
 
     constructor() {
-        this.myCache = new NodeCache();
+        this.myCache = new NodeCache({ checkperiod: 120 });
         this.initCache();
     }
 
     async initCache() {
+        this.myCache.flushAll();
         var games = await gameRepository.getAll();
         for (let i = 0; i < games.length; i++) {
             const game = games[i];
@@ -27,6 +28,7 @@ class SocketCache {
                 // }
             }
         }
+        console.log(this.myCache.keys());
     }
 
     async initializeGameDAta(game) {
@@ -44,11 +46,21 @@ class SocketCache {
         gameData.dice_value = game.dice_value;
         gameData.time_out = game.time_out;
         const gameInfos = await gameInfoRepository.findByGameId(gameId);
+
+        const obj = await this.extractPlayers(gameInfos);
+        if (obj.players) gameData.players = obj.players;
+        if (obj.turns) gameData.turns = obj.turns;
+        // console.log(this.myCache);
+        console.log("data initialization finished...")
+        return gameData;
+    }
+
+    async extractPlayers(gameInfos) {
+        let obj = { players: {}, turns: {} };
         let gameInfosCount = gameInfos.length;
         console.log(gameInfosCount);
-        var count = 0;
         for (var key = 0; key < gameInfosCount; key++) {
-            const index = count + 1;
+            const index = key + 1;
             const gameInfo = gameInfos[key];
             const color = Colors[key];
             if (gameInfo) {
@@ -61,7 +73,6 @@ class SocketCache {
                 player.disabled = false;
                 player.active = false;
                 // if (data.userId === userId) player.active = true;
-
                 let house = Object.assign({}, House);
                 house.id = userId;
                 house.disabled = false;
@@ -71,12 +82,12 @@ class SocketCache {
                 if (tokens && tokens.length > 0) {
                     for (var i = 0; i <= tokens.length; i++) {
                         if (tokens[i]) {
-                            let token = this.extractToken(tokens[i]);
-                            token.token_id = index + ':' + (i + 1);//TODO
+                            let token = await this.extractToken(tokens[i]);
+                            token.token_id = index + ':' + (i + 1); //TODO
                             token.color = color;
+                            token.house_id = userId;
                             token.disabled = false;
                             token.active = false;
-                            token.house_id = userId;
                             // token.position=index+'-12';
                             house.tokens.push(token);
                         }
@@ -87,16 +98,12 @@ class SocketCache {
                 house.route = getRoute(index);
 
                 player.house = house;
-                gameData.players[userId] = player;
-                gameData.turns[index] = userId;
-                count = count + 1;
+                obj.players[userId] = player;
+                obj.turns[index] = userId;
 
             }
         }
-        // gameData.player_count = count;
-        // console.log(this.myCache);
-        console.log("data initialization finished...")
-        return gameData;
+        return obj;
     }
 
     extractGame = async (game) => {
@@ -140,6 +147,10 @@ class SocketCache {
         let value = this.myCache.get(key);
         // console.log("getting cache..", key, value);
         return value;
+    }
+
+    async flush() {
+        this.myCache.flushAll();
     }
 }
 socketCache = Object.freeze(new SocketCache());
