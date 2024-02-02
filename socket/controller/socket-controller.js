@@ -44,7 +44,7 @@ let sendChatMessage = async (data) => {
 let selectedToken = async (data) => {
     console.log('selected token...', data);
     if (data) {
-        if (!ludoGame) await createLudoGame(data.gameId);
+        if (!ludoGame) await createLudoGame(data.gameId, data.userId);
         //TODO ; updated position
         await ludoGame.setDiceCastComplete(false);
         let retainPos = await ludoGame.moveToken(data.tokenId, data.userId);
@@ -56,7 +56,7 @@ let selectedToken = async (data) => {
 let diceRoll = async (data) => {
     console.log('dice value received...', data);
     if (data) {
-        if (!ludoGame) await createLudoGame(data.gameId);
+        if (!ludoGame) await createLudoGame(data.gameId, data.userId);
         await ludoGame.setDiceValue(data.diceValue);
         let obj = await ludoGame.enableTokens(data);
         if (obj["retainPos"] === true && obj["movedToken"] === false) await ludoGame.setDiceCastComplete(true);
@@ -72,7 +72,7 @@ let diceRoll = async (data) => {
 
 let startGame = async (data) => {
     console.log('starting game..', data);
-    if (!ludoGame) await createLudoGame(data.gameId);
+    if (!ludoGame) await createLudoGame(data.gameId, data.userId);
     const hasStarted = await ludoGame.startGame();
     const playerTurn = await ludoGame.getPlayerTurn();
     if (hasStarted) {
@@ -101,9 +101,21 @@ let onDisconnection = async (data) => {
     console.log('Socket disconnected..', data);
     // socket = null;
     // if (ludoGame) ludoGame.reset();
-    ludoGame = null;
-    //set inactive 
-    // ludoGame.setActive(data,false);
+    try {
+        if (ludoGame !== null) {
+            let playerId = await ludoGame.getCurrentPlayer();
+            let gameData = await ludoGame.getGameData();
+            console.log("disconected userId : ", playerId);
+            //set inactive 
+            if (playerId && gameData.game.id) {
+                console.log("disconnected from gameId : ", gameData.game.id);
+                await sCache.setInactive(playerId, gameData.game.id);
+            }
+        }
+        ludoGame = null;
+    } catch (error) {
+        console.error(error);
+    }
 };
 
 let onSendMessage = async (data) => {
@@ -115,20 +127,21 @@ let joinRoom = async (data) => {
     console.log("Joining room request ..", data);
     if (data.room) {
         try {
-            await createLudoGame(data.gameId);
+            await createLudoGame(data.gameId, data.userId);
             let gameData = await ludoGame.getGameData();
-            //set active 
-            await ludoGame.setActive(data, true);
-
-            gameData = await ludoGame.getGameData();
-            sCache.setCache(data.gameId, gameData);
+            // sCache.setCache(data.gameId, gameData);
             //join the socket
             if (socket) {
                 socket.join(data.room);
-                socket.to(data.room).emit("player_joined", data.userId);
+                socket.emit("received_message", gameData);//{ 'type': 'UPDATED_GAME_DATA', 'gameData': gameData }
+                if (gameData.has_started) {
+                    socket.to(data.room).emit("player_joined", data.userId);
+                }
+                else {
+                    socket.to(data.room).emit("received_message", gameData);
+                }
                 //emit the message
                 // socket.to(data.room).emit("received_message", gameData);
-                socket.emit("received_message", gameData);//{ 'type': 'UPDATED_GAME_DATA', 'gameData': gameData }
             }
         } catch (err) { console.log(err); }
         // console.log(games);
@@ -145,14 +158,38 @@ let sendUpdatedData = async (data) => {
     if (data.gameId) sCache.setCache(data.gameId, gameData);
 };
 
-let createLudoGame = async (gameId) => {
+let createLudoGame = async (gameId, userId) => {
     if (!gameId) return;
     let gameData = await sCache.getCacheValue(gameId);
-    ludoGame = new LudoGame();
+    ludoGame = new LudoGame(userId);
     if (gameData !== undefined) {
-        ludoGame.setGameData(gameData);
+        //updated gamedata
+        if (gameData.has_started) {
+            console.log("gamedata data from cache present");
+            ludoGame.setGameData(gameData);
+        }
+        else {
+            console.log("gamedata data from cache presnet ..updating ..");
+            await ludoGame.initialize(gameId);
+            await ludoGame.setActive(userId, true);
+            let data = await ludoGame.getGameData();
+            if (data.players) {
+                for (let playerId in gameData.players) {
+                    if (playerId !== userId) {
+                        let player = gameData.players[playerId];
+                        if (player) {
+                            await ludoGame.setActive(playerId, player.active);
+                        }
+                    }
+                }
+            }
+            ludoGame.setGameData(data);
+            sCache.setCache(gameId, data);
+        }
     } else {
+        console.log("gamedata data from cache absent..creating new ..");
         await ludoGame.initialize(gameId);
+        await ludoGame.setActive(userId, true);
         gameData = await ludoGame.getGameData();
         sCache.setCache(gameId, gameData);
     }

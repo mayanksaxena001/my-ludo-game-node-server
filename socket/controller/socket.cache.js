@@ -31,6 +31,24 @@ class SocketCache {
         console.log(this.myCache.keys());
     }
 
+    setInactive = async (playerId, gameId) => {
+        if (playerId === undefined) return;
+        if (gameId === undefined) return;
+        let gameData = await this.getCacheValue(gameId);
+        console.log('setting incactive player in cache..', playerId);
+        if (gameData && gameData.players) {
+            console.log('setting incactive player in game..', gameId);
+            let player = gameData.players[playerId];
+            if (player) {
+                console.log('setting incactive player in cache..', playerId);
+                player.active = false;
+                player.disabled = true;
+                gameData.players[playerId] = player;
+            }
+        }
+        this.setCache(gameId, gameData);
+    }
+
     async initializeGameDAta(game) {
         if (game === undefined) return null;
         const gameId = game.id;
@@ -144,7 +162,7 @@ class SocketCache {
 
     //key is gameId
     async getCacheValue(key) {
-        let value = this.myCache.get(key);
+        let value = await this.myCache.get(key);
         // console.log("getting cache..", key, value);
         return value;
     }

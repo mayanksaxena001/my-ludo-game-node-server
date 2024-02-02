@@ -8,19 +8,19 @@ const gameInfoRepository = new GameInfoRepository();
 const userRepository = new UserRepository();
 const ludoTokenRepository = new LudoTokenRepository();
 module.exports = class LudoGame {
-    constructor() {
+    constructor(userId) {
         console.log('constructing a ludo game...');
-        this.initialState();
+        this.initialState(userId);
         // if (!gameData) {
         //     this.gameData = Object.assign({}, GameData);
         // } else
         //     this.gameData = gameData;
     }
 
-    initialState() {
+    initialState(userId) {
         this.players = {};
         this.board = {};
-        this.currentPlayer = null;
+        this.currentPlayer = userId;
         this.diceRoll = null;
         this.gameData = Object.assign({}, GameData);
     }
@@ -51,6 +51,10 @@ module.exports = class LudoGame {
         this.gameData = gameData;
     }
 
+    getCurrentPlayer = async () => {
+        return this.currentPlayer;
+    }
+
     getGameData = async () => {
         return this.gameData;
     }
@@ -79,10 +83,8 @@ module.exports = class LudoGame {
         return this.gameData.has_started;
     }
 
-    setActive = async (data, value) => {
-        const userId = data.userId;
-        const gameId = data.gameId;
-        if (!value) return;
+    setActive = async (userId, value) => {
+        if (value === undefined) return;
 
         if (this.gameData && this.gameData.players) {
             let player = this.gameData.players[userId];
@@ -338,6 +340,7 @@ module.exports = class LudoGame {
     }
 
     finishGame() {
+        //TODO : 
         if (this.gameData.home.length === (this.gameData.player_count - 1)) {
             console.log("finishing game...");
             this.gameData.has_stopped = true;
@@ -364,7 +367,7 @@ module.exports = class LudoGame {
         }
         let userId = this.gameData.turns[player_turn];
         let player = this.gameData.players[userId];
-        if(!player.active){
+        if (!player.active) {
             player_turn = player_turn + 1;
             if (player_turn > this.gameData.player_count)
                 player_turn = 1; //rolling turns
