@@ -36,7 +36,7 @@ module.exports = async (server) => {
   });
   io.on("close", data => {
     console.log("closing connection with socket.. ", data);
-    socketCache.flush();
+    // socketCache.flush();
   });
   io.on('error', (err) => {
     console.log("error in connecting socket.. ");

@@ -28,7 +28,7 @@ class SocketCache {
                 // }
             }
         }
-        console.log(this.myCache.keys());
+        // console.log(this.myCache.keys());
     }
 
     setInactive = async (playerId, gameId) => {

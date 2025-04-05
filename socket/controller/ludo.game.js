@@ -148,20 +148,6 @@ module.exports = class LudoGame {
         return obj;
     }
 
-    extractGame = async (game) => {
-        if (game) {
-            let _game = Object.assign({}, Game);
-            if (game.id) _game.id = game.id;
-            if (game.room) _game.room = game.room;
-            if (game.created_by) _game.created_by = game.created_by;
-            if (game.active) _game.active = game.active;
-            if (game.createdAt) _game.createdAt = game.createdAt;
-            if (game.updatedAt) _game.updatedAt = game.updatedAt;
-            return _game;
-        }
-        return {};
-    }
-
     extractToken = async (token) => {
         if (token) {
             let _token = Object.assign({}, Token);
@@ -348,12 +334,10 @@ module.exports = class LudoGame {
         }
     }
 
-    async timeOut(data) {
-        if (data) {
-            const randomNum = Math.floor(Math.random() * 6) + 1;
-            this.gameData.dice_value = randomNum;
-            await this.setPlayerTurn();
-        }
+    async timeOut() {
+        const randomNum = Math.floor(Math.random() * 6) + 1;
+        this.gameData.dice_value = randomNum;
+        await this.setPlayerTurn();
     }
 
     async setPlayerTurn() {
@@ -361,13 +345,6 @@ module.exports = class LudoGame {
         let dice_value = this.gameData.dice_value;
         let player_turn = this.gameData.player_turn;
         if (dice_value !== 6) {
-            player_turn = player_turn + 1;
-            if (player_turn > this.gameData.player_count)
-                player_turn = 1; //rolling turns
-        }
-        let userId = this.gameData.turns[player_turn];
-        let player = this.gameData.players[userId];
-        if (!player.active) {
             player_turn = player_turn + 1;
             if (player_turn > this.gameData.player_count)
                 player_turn = 1; //rolling turns

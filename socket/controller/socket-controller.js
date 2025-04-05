@@ -102,7 +102,7 @@ let onDisconnection = async (data) => {
     // socket = null;
     // if (ludoGame) ludoGame.reset();
     try {
-        if (ludoGame !== null) {
+        if (ludoGame !== null && ludoGame !== undefined) {
             let playerId = await ludoGame.getCurrentPlayer();
             let gameData = await ludoGame.getGameData();
             console.log("disconected userId : ", playerId);
@@ -169,7 +169,7 @@ let createLudoGame = async (gameId, userId) => {
             ludoGame.setGameData(gameData);
         }
         else {
-            console.log("gamedata data from cache presnet ..updating ..");
+            console.log("gamedata data from cache present ..updating ..");
             await ludoGame.initialize(gameId);
             await ludoGame.setActive(userId, true);
             let data = await ludoGame.getGameData();
